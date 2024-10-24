@@ -18,6 +18,7 @@ namespace CamelGame
     {
         static void Main(string[] args)
         {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
             // Initialisation des variables de départ
             GameState gameState = InitializeGame();
 
@@ -27,14 +28,19 @@ namespace CamelGame
                 DisplayGamePhase(gameState);
                 Vent ventActuel = SelectWindForZone(gameState.zone);
                 DisplayWindInfo(ventActuel);
+                ApplyWindEffects(ventActuel, gameState);
 
                 if (gameState.jour == 5)
                 {
                     AnnounceStorm();
                 }
 
-                DisplayResources(gameState);
-                ExecuteTwoActions(gameState);
+                if (gameState.jour == 6)
+                {
+                    gameState.tempeteDistance += 15000;
+                }
+
+                ExecuteTwoActions(gameState, ventActuel);
                 UpdateGameState(ref gameState);
                 CheckGameOverConditions(gameState);
             }
@@ -70,14 +76,15 @@ namespace CamelGame
         static Vent SelectWindForZone(int zone)
         {
             Random rand = new Random();
-            int chance = rand.Next(0, 100); // Valeur entre 1 et 100
+            int chance = rand.Next(0, 101); // Valeur entre 0 et 100
 
             // Définir les probabilités pour chaque zone
             if (zone == 1)
             {
-                if (chance <= 60) return Vent.Zefirine;
+                /*if (chance <= 60) return Vent.Zefirine;
                 if (chance <= 90) return Vent.Slamino;
-                return Vent.Steche;
+                return Vent.Steche;*/
+                return Vent.Slamino;
             }
             else if (zone == 2)
             {
@@ -108,6 +115,38 @@ namespace CamelGame
             }
         }
 
+        static void ApplyWindEffects(Vent vent, GameState gameState)
+        {
+            switch (vent)
+            {
+                case Vent.Zefirine:
+                    // Pas d'effet, vent neutre
+                    break;
+                case Vent.Slamino:
+                    Console.WriteLine("Slamino ralentit votre progression.");
+                    gameState.energie--; // Réduit l'énergie de 1 et empêche la course pour 1 action
+                    break;
+                case Vent.Steche:
+                    Console.WriteLine("Stèche vous empêche de courir.");
+                    gameState.energie--; // Réduit l'énergie de 1 et empêche la course pour les 2 actions
+                    break;
+                case Vent.Choon:
+                    Console.WriteLine("Choon vous fatigue beaucoup.");
+                    gameState.energie--; // Réduit l'énergie de 1
+                    break;
+                case Vent.Crivetz:
+                    Console.WriteLine("Crivetz est une tempête, difficile d'avancer !");
+                    gameState.energie -= 2; // Réduit l'énergie de 2
+                    break;
+                case Vent.Furvent:
+                    Console.WriteLine("Furvent est une tempête violente !");
+                    gameState.energie -= 3; // Réduit l'énergie de 3
+                    gameState.nourriture--; // Réduit aussi la nourriture de 1
+                    break;
+            }
+        }
+
+
         // Afficher les informations sur le vent
         static void DisplayWindInfo(Vent vent)
         {
@@ -136,27 +175,30 @@ namespace CamelGame
         // Afficher l'état des ressources
         static void DisplayResources(GameState gameState)
         {
-            Console.WriteLine($"Énergie : {gameState.energie}/5, Nourriture : {gameState.nourriture}/5, Eau : {gameState.eau}/5, Santé mentale : {gameState.santeMentale}/5");
+            Console.WriteLine($"⚡ : {gameState.energie}/5, 🍖 : {gameState.nourriture}/5, 💧 : {gameState.eau}/5, \U0001f9e0 : {gameState.santeMentale}/5");
         }
 
         // Exécuter deux actions du joueur
-        static void ExecuteTwoActions(GameState gameState)
+        static void ExecuteTwoActions(GameState gameState, Vent ventActuel)
         {
+            bool hasRunThisTurn = false;
             for (int actionCount = 0; actionCount < 2; actionCount++)
             {
-                int choix = ChooseAction(gameState);
-                UpdateGameStateAfterAction(choix, gameState);
+                DisplayResources(gameState);
+                int choix = ChooseAction(gameState, ventActuel, hasRunThisTurn);
+               
+                UpdateGameStateAfterAction(choix, gameState, ventActuel, hasRunThisTurn);
             }
         }
 
         // Choisir une action
-        static int ChooseAction(GameState gameState)
+        static int ChooseAction(GameState gameState, Vent ventActuel, bool hasRunThisTurn)
         {
             Console.WriteLine("\nQue voulez-vous faire ?");
-            if (CanWalk(gameState)) Console.WriteLine("1 - Marcher (−1 Énergie, −1 Nourriture, −1 Eau)");
-            if (CanRun(gameState)) Console.WriteLine("2 - Courir (−2 Énergie, −2 Nourriture, −2 Eau)");
-            if (CanRest(gameState)) Console.WriteLine("3 - Se reposer (+2 Énergie, +1 Santé mentale)");
-            if (CanSearchResources(gameState)) Console.WriteLine("4 - Chercher des ressources (−1 Énergie, +1 Nourriture ou Eau)");
+            if (CanWalk(gameState)) Console.WriteLine("1 - Marcher (−1 ⚡, −1 🍖, −1 💧)");
+            if (CanRun(gameState, ventActuel, hasRunThisTurn)) Console.WriteLine("2 - Courir (−2 ⚡, −2 🍖, −2 💧)");
+            if (CanRest(gameState)) Console.WriteLine("3 - Se reposer (+2 ⚡, +1 🧠)");
+            if (CanSearchResources(gameState)) Console.WriteLine("4 - Chercher des ressources (−1 ⚡, +1 🍖 ou/et 💧)");
 
             return int.Parse(Console.ReadLine());
         }
@@ -165,7 +207,7 @@ namespace CamelGame
         static bool CanWalk(GameState gameState) => gameState.eau > 0 && gameState.nourriture > 0 && gameState.energie > 0;
 
         // Vérifier si le joueur peut courir
-        static bool CanRun(GameState gameState) => gameState.eau >= 2 && gameState.nourriture >= 2 && gameState.energie >= 2;
+        static bool CanRun(GameState gameState, Vent ventActuel, bool hasRunThisTurn) => ventActuel != Vent.Steche && (ventActuel != Vent.Slamino || !hasRunThisTurn) && gameState.eau >= 2 && gameState.nourriture >= 2 && gameState.energie >= 2;
 
         // Vérifier si le joueur peut se reposer
         static bool CanRest(GameState gameState) => gameState.energie < 5;
@@ -174,7 +216,7 @@ namespace CamelGame
         static bool CanSearchResources(GameState gameState) => gameState.eau < 5 || gameState.nourriture < 5;
 
         // Mettre à jour l'état après l'action
-        static void UpdateGameStateAfterAction(int choix, GameState gameState)
+        static void UpdateGameStateAfterAction(int choix, GameState gameState, Vent ventActuel, bool hasRunThisTurn)
         {
             switch (choix)
             {
@@ -182,7 +224,7 @@ namespace CamelGame
                     Walk(gameState);
                     Console.WriteLine("Vous avez décidé de marcher.");
                     break;
-                case 2 when CanRun(gameState):
+                case 2 when CanRun(gameState, ventActuel, hasRunThisTurn):
                     Run(gameState);
                     Console.WriteLine("Vous avez décidé de courir.");
                     break;
@@ -233,23 +275,23 @@ namespace CamelGame
 
             if (chance < 10) // 10% de chance de ne rien trouver
             {
-                Console.WriteLine("Vous n'avez rien trouvé.");
+                Console.WriteLine("Vous n'avez rien trouvé. ❌");
             }
             else if (chance < 30) // 20% de chance de trouver à la fois de l'eau et de la nourriture
             {
                 gameState.eau = Math.Min(5, gameState.eau + 1);
                 gameState.nourriture = Math.Min(5, gameState.nourriture + 1);
-                Console.WriteLine("Vous avez trouvé de l'eau et de la nourriture !");
+                Console.WriteLine("Vous avez trouvé de l'eau et de la nourriture ! 💧 🍖");
             }
             else if (chance < 65) // 35% de chance de trouver uniquement de l'eau
             {
                 gameState.eau = Math.Min(5, gameState.eau + 1);
-                Console.WriteLine("Vous avez trouvé de l'eau !");
+                Console.WriteLine("Vous avez trouvé de l'eau ! 💧");
             }
             else // 35% de chance de trouver uniquement de la nourriture
             {
                 gameState.nourriture = Math.Min(5, gameState.nourriture + 1);
-                Console.WriteLine("Vous avez trouvé de la nourriture !");
+                Console.WriteLine("Vous avez trouvé de la nourriture ! 🍖");
             }
 
             gameState.energie--; // Chercher des ressources consomme de l'énergie
@@ -262,7 +304,7 @@ namespace CamelGame
             Console.WriteLine($"\nDistance parcourue : {gameState.distanceParcourue} mètres");
             if (gameState.jour >= 5 && gameState.tempeteDistance > 0)
             {
-                Console.WriteLine($"La tempête est à {gameState.tempeteDistance} mètres derrière vous.");
+                Console.WriteLine($"🌪 La tempête est à {gameState.tempeteDistance} mètres derrière vous.");
             }
             Console.WriteLine("=================================\n");
         }
@@ -291,14 +333,19 @@ namespace CamelGame
         // Vérifier les conditions de fin de jeu
         static void CheckGameOverConditions(GameState gameState)
         {
-            if (gameState.energie <= 0)
+            if (gameState.energie <= 0 || (gameState.eau <= 0 && gameState.nourriture <= 0))
             {
-                Console.WriteLine("Vous êtes épuisé et ne pouvez plus continuer. Fin du jeu !");
+                Console.WriteLine("💀 Vous êtes épuisé et ne pouvez plus continuer. Fin du jeu ! 💀");
+                Environment.Exit(0);
+            }
+            if (gameState.tempeteDistance >= gameState.distanceParcourue)
+            {
+                Console.WriteLine("🌪 La tempête vous a rattrapé. Fin du jeu ! 💀");
                 Environment.Exit(0);
             }
             if (gameState.distanceParcourue >= gameState.distanceObjectif)
             {
-                Console.WriteLine("Vous avez atteint votre objectif de distance. Félicitations !");
+                Console.WriteLine("🎉 Vous avez atteint votre objectif de distance. Félicitations ! 🎉");
                 Environment.Exit(0);
             }
         }
@@ -347,3 +394,4 @@ namespace CamelGame
 
 
 
+// Faire le hasRunThisTurn
