@@ -57,7 +57,7 @@ namespace CamelGame
                 zone = 1,
                 distanceParcourue = 0,
                 distanceObjectif = 500000,
-                energie = 5,
+                energie = 10,
                 nourriture = 5,
                 eau = 5,
                 tempeteDistance = 0,
@@ -81,10 +81,9 @@ namespace CamelGame
             // Définir les probabilités pour chaque zone
             if (zone == 1)
             {
-                /*if (chance <= 60) return Vent.Zefirine;
+                if (chance <= 60) return Vent.Zefirine;
                 if (chance <= 90) return Vent.Slamino;
-                return Vent.Steche;*/
-                return Vent.Slamino;
+                return Vent.Steche;
             }
             else if (zone == 2)
             {
@@ -107,7 +106,7 @@ namespace CamelGame
                 if (chance <= 60) return Vent.Steche;
                 return Vent.Choon;
             }
-            else // zone 5
+            else
             {
                 if (chance <= 1) return Vent.Zefirine;
                 if (chance <= 20) return Vent.Choon;
@@ -186,9 +185,13 @@ namespace CamelGame
             {
                 DisplayResources(gameState);
                 int choix = ChooseAction(gameState, ventActuel, hasRunThisTurn);
-               
                 UpdateGameStateAfterAction(choix, gameState, ventActuel, hasRunThisTurn);
+                if (choix == 2) 
+                {
+                    hasRunThisTurn = true;
+                }
             }
+
         }
 
         // Choisir une action
@@ -388,10 +391,6 @@ namespace CamelGame
                               3) Négocier (50% de chance de ne rien perdre / 50% de chance de donner le double)
  *            Corps d'ancien marcheur -> -1 santé mental, +3 nourriture et eau | Chance d'apparition : 5% en marchant / 30% en cherchant des ressources  
  *            Tempête de vent : Passe la journée du joueur | 5% de chance d'arriver chaque jour
- * Vent : Configurer les vents
- * Gérer correctement l'affichage de la tempête puis faire la fonction (si la distance de la tempête est plus grande que la distance du joueur = perdu)
  */
 
 
-
-// Faire le hasRunThisTurn
