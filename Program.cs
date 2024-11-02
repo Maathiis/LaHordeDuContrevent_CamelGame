@@ -54,12 +54,10 @@ namespace CamelGame
             DisplayGameResult(gameState);
         }
 
-
         static void Rules()
         {
             Console.WriteLine("Règle du jeu :");
         }
-
         // Initialisation du jeu
         static GameState InitializeGame()
         {
@@ -80,14 +78,12 @@ namespace CamelGame
                 maxSanteMentale = 5,
             };
         }
-
         // Afficher l'état de la phase de jeu
         static void DisplayGamePhase(GameState gameState)
         {
            
             Console.WriteLine($"\n*** Zone {gameState.zone} - Jour {gameState.jour} ***");
         }
-
         // Choisir un vent en fonction de la zone
         static Vent SelectWindForZone(int zone)
         {
@@ -160,8 +156,6 @@ namespace CamelGame
                     break;
             }
         }
-
-
         // Afficher les informations sur le vent
         static void DisplayWindInfo(Vent vent)
         {
@@ -177,7 +171,6 @@ namespace CamelGame
             };
             Console.WriteLine($"* Vent : {description} *");
         }
-
         // Annonce de la tempête
         static void AnnounceStorm()
         {
@@ -186,13 +179,11 @@ namespace CamelGame
             Console.WriteLine("Elle avancera de 15 000 mètres par jour jusqu'au bout du monde.");
             Console.WriteLine("==============================\n");
         }
-
         // Afficher l'état des ressources
         static void DisplayResources(GameState gameState)
         {
             Console.WriteLine($"⚡ : {gameState.energie}/{gameState.maxEnergie}, 🍖 : {gameState.nourriture}/{gameState.maxNourriture}, 💧 : {gameState.eau}/{gameState.maxEau}, \U0001f9e0 : {gameState.santeMentale}/{gameState.maxSanteMentale}");
         }
-
         // Exécuter deux actions du joueur
         static void ExecuteTwoActions(GameState gameState, Vent ventActuel)
         {
@@ -207,10 +198,7 @@ namespace CamelGame
                     hasRunThisTurn = true;
                 }
             }
-            gameState.isRunning = false;
-
         }
-
         // Choisir une action
         static int ChooseAction(GameState gameState, Vent ventActuel, bool hasRunThisTurn)
         {
@@ -222,19 +210,14 @@ namespace CamelGame
 
             return int.Parse(Console.ReadLine());
         }
-
         // Vérifier si le joueur peut marcher
         static bool CanWalk(GameState gameState) => gameState.eau > 0 && gameState.nourriture > 0 && gameState.energie > 0;
-
         // Vérifier si le joueur peut courir
         static bool CanRun(GameState gameState, Vent ventActuel, bool hasRunThisTurn) => ventActuel != Vent.Steche && (ventActuel != Vent.Slamino || !hasRunThisTurn) && gameState.eau >= 2 && gameState.nourriture >= 2 && gameState.energie >= 2;
-
         // Vérifier si le joueur peut se reposer
-        static bool CanRest(GameState gameState) => gameState.energie < 5;
-
+        static bool CanRest(GameState gameState) => gameState.energie < gameState.maxEnergie;
         // Vérifier si le joueur peut chercher des ressources
-        static bool CanSearchResources(GameState gameState) => gameState.eau < 5 || gameState.nourriture < 5;
-
+        static bool CanSearchResources(GameState gameState) => gameState.eau < gameState.maxEau || gameState.nourriture < gameState.maxNourriture;
         // Mettre à jour l'état après l'action
         static void UpdateGameStateAfterAction(int choix, GameState gameState, Vent ventActuel, bool hasRunThisTurn)
         {
@@ -242,22 +225,20 @@ namespace CamelGame
             {
 
                 case 1 when CanWalk(gameState):
-                    oldWalkeurEvent(gameState, 5);
                     Walk(gameState);
-                    Console.WriteLine("Vous avez décidé de marcher.");
+                    oldWalkeurEvent(gameState, 5);
+                    BanditEvent(gameState, 5);
                     break;
                 case 2 when CanRun(gameState, ventActuel, hasRunThisTurn):
                     Run(gameState);
-                    Console.WriteLine("Vous avez décidé de courir.");
+                    BanditEvent(gameState, 15);
                     break;
                 case 3 when CanRest(gameState):
                     Rest(gameState);
-                    Console.WriteLine("Vous vous reposez et récupérez de l'énergie.");
                     break;
                 case 4 when CanSearchResources(gameState):
-                    oldWalkeurEvent(gameState, 30);
                     SearchResources(gameState);
-                    Console.WriteLine("Vous cherchez des ressources.");
+                    oldWalkeurEvent(gameState, 30);
                     break;
                 default:
                     Console.WriteLine("\nAction impossible ou choix invalide.");
@@ -265,19 +246,19 @@ namespace CamelGame
             }
             DisplayCurrentState(gameState);
         }
-        
         // Actions du joueur
         static void Walk(GameState gameState)
         {
+            Console.WriteLine("Vous avez décidé de marcher.");
             gameState.distanceParcourue += 10000; // Marche 10 000m par jour
             gameState.energie--;
             gameState.eau--;
             gameState.nourriture--;
-            gameState.isRunning = true;
         }
 
         static void Run(GameState gameState)
         {
+            Console.WriteLine("Vous avez décidé de courir.");
             gameState.distanceParcourue += 30000; // Course 30 000m par jour
             gameState.energie -= 2;
             gameState.eau -= 2;
@@ -286,6 +267,7 @@ namespace CamelGame
 
         static void Rest(GameState gameState)
         {
+            Console.WriteLine("Vous vous reposez et récupérez de l'énergie.");
             gameState.energie = Math.Min(8, gameState.energie + 2);
             gameState.santeMentale = Math.Min(5, gameState.santeMentale + 1);
 
@@ -294,6 +276,7 @@ namespace CamelGame
 
         static void SearchResources(GameState gameState)
         {
+            Console.WriteLine("Vous cherchez des ressources.");
             Random rand = new Random();
             int chance = rand.Next(0, 100);
 
@@ -320,8 +303,6 @@ namespace CamelGame
 
             gameState.energie--; // Chercher des ressources consomme de l'énergie
         }
-
-
         // Afficher la distance parcourue et l'état de la tempête
         static void DisplayCurrentState(GameState gameState)
         {
@@ -354,38 +335,6 @@ namespace CamelGame
             }
         }
 
-        static void RandomEvent(GameState gameState)
-        {
-            Random rand = new Random();
-            int jourChance = rand.Next(0, 101); // Valeur entre 0 et 100
-
-            // Événement Bandit
-           /* if (gameState.isRunning) // Assurez-vous que le joueur court
-            {
-                int banditChance = rand.Next(0, 101); // Valeur entre 0 et 100
-                if (banditChance < 15) // 15% de chance de croiser des bandits
-                {
-                    int choix = BanditEvent(gameState); // Appel de la méthode BanditEvent
-                    switch (choix)
-                    {
-                        case 1:
-                            paidBandit(gameState);
-                            break;
-                        case 2:
-                            fightBandit(gameState);
-                            break;
-                        case 3:
-                            negotiate(gameState);
-                            break;
-                        default:
-                            Console.WriteLine("Choix invalide, vous êtes attaqué par les bandits !");
-                            paidBandit(gameState); // Par défaut, payer en cas d'entrée invalide
-                            break;
-                    }
-                }
-            } */
-        }
-
         static void DailyEvent(GameState gameState)
         {
             Random rand = new Random();
@@ -412,7 +361,77 @@ namespace CamelGame
             Console.WriteLine("-1 🧠");
             gameState.santeMentale--;
         }
+        // Événement Bandit
+        static void BanditEvent(GameState gameState, int chance)
+        {
+            Random rand = new Random();
+            int banditChance = rand.Next(0, 101); // Valeur entre 0 et 100
+            if (banditChance < chance) // 15% de chance de croiser des bandits
+            {
+                int choix = Bandit(gameState); // Appel de la méthode BanditEvent
+                switch (choix)
+                {
+                    case 1:
+                        paidBandit(gameState);
+                        break;
+                    case 2:
+                        fightBandit(gameState);
+                        break;
+                    case 3:
+                        negotiate(gameState);
+                        break;
+                    default:
+                        Console.WriteLine("Choix invalide, vous êtes attaqué par les bandits !");
+                        paidBandit(gameState); // Par défaut, payer en cas d'entrée invalide
+                        break;
+                }
+            }
+        }
 
+        static int Bandit(GameState gameState)
+        {
+            Console.WriteLine("Courir vous rend plus visible, des bandits vous attaque.");
+            Console.WriteLine("\nQue voulez-vous faire ?");
+            Console.WriteLine("1 - Payer le droit de vie (−1 🍖, −1 💧, −1 🧠)");
+            Console.WriteLine("2 - Se battre (−3 ⚡)");
+            Console.WriteLine("3 - Négocier (1/2 de ne rien perdre ou de perdre le double du droit de vie)");
+
+            return int.Parse(Console.ReadLine());
+        }
+
+        static void paidBandit(GameState gameState)
+        {
+            Console.WriteLine("Vous payez les bandits.");
+            Console.WriteLine("−1 🍖, −1 💧, −1 \U0001f9e0");
+            gameState.santeMentale--;
+            gameState.nourriture--;
+            gameState.eau--;
+        }
+
+        static void fightBandit(GameState gameState)
+        {
+            Console.WriteLine("Vous combattez les bandits.");
+            Console.WriteLine("−3 ⚡");
+            gameState.energie -= 3;
+        }
+
+        static void negotiate(GameState gameState)
+        {
+            Random rand = new Random();
+            int chance = rand.Next(1, 3);
+            if (chance == 1)
+            {
+                Console.WriteLine("Vous êtes un excellent négociateurs, les bandits vous laisse partir.");
+            }
+            else
+            {
+                Console.WriteLine("Les négociations se passe mal, vous payez le double.");
+                Console.WriteLine("−2 🍖, −2 💧, −2 \U0001f9e0");
+                gameState.santeMentale -= 2;
+                gameState.nourriture -= 2;
+                gameState.eau -= 2;
+            }
+        }
         // Événement Corps d'ancien marcheur
         static void oldWalkeurEvent(GameState gameState, int chance)
         {
@@ -432,54 +451,12 @@ namespace CamelGame
             gameState.eau = Math.Min(10, gameState.eau + 3);
             gameState.nourriture = Math.Min(10, gameState.nourriture + 3);
         }
-
         // Événement Tempête de vent
-
         static void WindStorm(GameState gameState)
         {
             Console.WriteLine("Une tempête de vent arrive, vous vous réfugiez jusqu'au lendemain.");
             gameState.jour++;
         }
-
-        /*static void BanditEvent(GameState gameState)
-        {
-            Console.WriteLine("Courir vous rend plus visible, des bandits vous attaque.");
-            Console.WriteLine("\nQue voulez-vous faire ?");
-            if (paidBandit(gameState)) Console.WriteLine("1 - Payer le droit de vie (−1 🍖, −1 💧, −1 🧠)");
-            if (fightBandit(gameState)) Console.WriteLine("2 - Se battre (−3 ⚡)");
-            if (negotiate(gameState)) Console.WriteLine("3 - Négocier (1/2 de ne rien perdre ou de perdre le double du droit de vie)");
-
-            return int.Parse(Console.ReadLine());
-        }
-        static void paidBandit(GameState gameState)
-        {
-            gameState.santeMentale--;
-            gameState.nourriture--;
-            gameState.eau--;
-        }
-
-        static void fightBandit(GameState gameState)
-        {
-            gameState.energie -= 3;
-        }
-
-        static void negotiate(GameState gameState)
-        {
-            Random rand = new Random();
-            int chance = rand.Next(1, 2);
-            if (chance = 1)
-            {
-                Console.WriteLine("Vous êtes un excellent négociateurs, les bandits vous laisse partir.");
-            }
-            else
-            {
-                Console.WriteLine("Les négociations se passe mal, vous payez le double.");
-                gameState.santeMentale -= 2;
-                gameState.nourriture -= 2;
-                gameState.eau -= 2;
-            }
-        }*/
-
         // Vérifier les conditions de fin de jeu
         static void CheckGameOverConditions(GameState gameState)
         {
@@ -502,7 +479,6 @@ namespace CamelGame
                 return ;
             }
         }
-
         // Afficher le résultat final du jeu
         static void DisplayGameResult(GameState gameState)
         {
@@ -516,7 +492,6 @@ namespace CamelGame
             Console.WriteLine($"Santé mentale : {gameState.santeMentale}/{gameState.maxSanteMentale}");
         }
     }
-
     // Classe pour gérer l'état du jeu
     class GameState
     {
@@ -537,4 +512,3 @@ namespace CamelGame
         public bool windStormOccured = false;
     }
 }
-
